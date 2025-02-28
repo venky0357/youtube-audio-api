@@ -1,12 +1,12 @@
 const express = require("express");
 const cors = require("cors");
-const { spawn } = require("child_process");
+const youtubedl = require("youtube-dl-exec");
 const path = require("path");
 
 const app = express();
 app.use(cors());
 
-const cache = new Map(); // In-memory cache
+const cache = new Map(); // Cache to store previously fetched audio URLs
 const cookiesPath = path.join(__dirname, "cookies.txt"); // Path to cookies file
 
 app.get("/get-audio", async (req, res) => {
@@ -15,39 +15,30 @@ app.get("/get-audio", async (req, res) => {
         return res.status(400).json({ error: "Missing video_id parameter" });
     }
 
-    // Check if the audio URL is already cached
+    // Return cached result if available
     if (cache.has(videoId)) {
         return res.json({ audio_url: cache.get(videoId) });
     }
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const ytDlpArgs = [
-        "-f", "bestaudio",
-        "--get-url",
-        "--cookies", cookiesPath,
-        "--no-check-certificate",
-        "--flat-playlist"
-    ];
 
-    const process = spawn("yt-dlp", [...ytDlpArgs, videoUrl]);
+    try {
+        const output = await youtubedl(videoUrl, {
+            format: "bestaudio",
+            getUrl: true,
+            cookies: cookiesPath, // Use cookies for authentication
+            noCheckCertificates: true, // Skip SSL verification for speed
+            extractorRetries: 1, // Reduce retries to avoid delays
+            flatPlaylist: true, // Prevent unnecessary metadata fetching
+            quiet: true, // Suppress logs for faster execution
+            noWarnings: true, // Ignore warnings that slow down the process
+        });
 
-    let output = "";
-    process.stdout.on("data", (data) => {
-        output += data.toString();
-    });
-
-    process.on("close", () => {
-        if (output.trim()) {
-            cache.set(videoId, output.trim()); // Store result in cache
-            return res.json({ audio_url: output.trim() });
-        } else {
-            return res.status(500).json({ error: "Failed to get audio URL" });
-        }
-    });
-
-    process.on("error", (err) => {
-        return res.status(500).json({ error: "Failed to execute yt-dlp", details: err.message });
-    });
+        cache.set(videoId, output); // Store in cache
+        res.json({ audio_url: output });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to get audio URL", details: error.message });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
