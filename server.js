@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const youtubedl = require("youtube-dl-exec");
+const path = require("path");
 
 const app = express();
 app.use(cors());
@@ -12,11 +13,12 @@ app.get("/get-audio", async (req, res) => {
     }
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
+    const cookiesPath = path.join(__dirname, "cookies.txt"); // Path to cookies file
     try {
         const output = await youtubedl(videoUrl, {
             format: "bestaudio",
-            getUrl: true
+            getUrl: true,
+            cookies: cookiesPath, // Use cookies for authentication
         });
         res.json({ audio_url: output });
     } catch (error) {
