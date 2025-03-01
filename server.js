@@ -13,7 +13,7 @@ const cookiesPath = path.join(__dirname, "cookies.txt");
 // Function to check if cookies are valid
 const isCookiesValid = async () => {
     try {
-        const output = await youtubedl("https://www.youtube.com/watch?v=dQw4w9WgXcQ", {
+        await youtubedl("https://www.youtube.com/watch?v=dQw4w9WgXcQ", {
             format: "bestaudio",
             getUrl: true,
             cookies: cookiesPath,
@@ -39,29 +39,30 @@ const refreshCookies = async () => {
             "--no-first-run",
             "--no-zygote",
         ],
-        executablePath: process.env.CHROME_PATH || "/opt/render/.cache/puppeteer/chrome/linux-133.0.6943.126/chrome-linux64/chrome", // Explicit Chrome path for Render
+        executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome", // Adjust for local use
     });
 
     const page = await browser.newPage();
-    
-    // Navigate to YouTube and login automatically
+
+    // Navigate to YouTube login page
     await page.goto("https://accounts.google.com/signin/v2/identifier?service=youtube", { waitUntil: "networkidle2" });
 
-    // Enter email and proceed
+    // Enter email
     await page.type('input[type="email"]', "pulukurivenkatesh02@gmail.com");
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(3000); // Wait for next step
+    await page.waitForNavigation({ waitUntil: "networkidle2" }); // Ensure next step loads
 
-    // Enter password and proceed
-    await page.type('input[type="password"]', "venkatesh@20030357");
+    // Enter password
+    await page.type('input[type="password"]', "Venkatesh@20030357");
     await page.keyboard.press("Enter");
-    await page.waitForNavigation({ waitUntil: "networkidle2" });
+    await page.waitForNavigation({ waitUntil: "networkidle2" }); // Wait until logged in
 
     console.log("Logged in successfully!");
 
     // Extract cookies
-    const cookies = await page.cookies();
-    const cookieString = cookies.map(cookie => 
+    const context = browser.defaultBrowserContext();
+    const cookies = await context.cookies();
+    const cookieString = cookies.map(cookie =>
         `${cookie.domain}\tTRUE\t/\t${cookie.secure}\t${cookie.expires}\t${cookie.name}\t${cookie.value}`
     ).join("\n");
 
