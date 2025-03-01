@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const youtubedl = require("youtube-dl-exec");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 const fs = require("fs");
 const path = require("path");
 
@@ -20,6 +20,7 @@ const isCookiesValid = async () => {
         });
         return true; // Cookies are valid
     } catch (error) {
+        console.log("Cookies expired! Refreshing...");
         return false; // Cookies are expired
     }
 };
@@ -27,8 +28,9 @@ const isCookiesValid = async () => {
 // Function to refresh YouTube cookies using Puppeteer
 const refreshCookies = async () => {
     console.log("Refreshing cookies...");
+
     const browser = await puppeteer.launch({
-        headless: true, // Must be true for server environments
+        headless: true, // Ensure headless mode for server environments
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -37,20 +39,31 @@ const refreshCookies = async () => {
             "--no-first-run",
             "--no-zygote",
         ],
-        executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome", // Use system Chrome
+        executablePath: process.env.CHROME_PATH || "/opt/render/.cache/puppeteer/chrome/linux-133.0.6943.126/chrome-linux64/chrome", // Explicit Chrome path for Render
     });
+
     const page = await browser.newPage();
     
-    // Navigate to YouTube login page
-    await page.goto("https://accounts.google.com/signin/v2/identifier?service=youtube");
+    // Navigate to YouTube and login automatically
+    await page.goto("https://accounts.google.com/signin/v2/identifier?service=youtube", { waitUntil: "networkidle2" });
 
-    // Wait for the user to log in manually
-    console.log("Please log in manually in the opened browser window...");
-    await page.waitForTimeout(30000); // 30 seconds to log in
+    // Enter email and proceed
+    await page.type('input[type="email"]', process.env.YT_EMAIL);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(3000); // Wait for next step
+
+    // Enter password and proceed
+    await page.type('input[type="password"]', process.env.YT_PASSWORD);
+    await page.keyboard.press("Enter");
+    await page.waitForNavigation({ waitUntil: "networkidle2" });
+
+    console.log("Logged in successfully!");
 
     // Extract cookies
     const cookies = await page.cookies();
-    const cookieString = cookies.map(cookie => `${cookie.domain}\tTRUE\t/\t${cookie.secure}\t${cookie.expires}\t${cookie.name}\t${cookie.value}`).join("\n");
+    const cookieString = cookies.map(cookie => 
+        `${cookie.domain}\tTRUE\t/\t${cookie.secure}\t${cookie.expires}\t${cookie.name}\t${cookie.value}`
+    ).join("\n");
 
     // Save cookies to file
     fs.writeFileSync(cookiesPath, cookieString);
@@ -84,5 +97,6 @@ app.get("/get-audio", async (req, res) => {
     }
 });
 
+// Start server on Render's assigned port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
