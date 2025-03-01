@@ -48,12 +48,12 @@ const refreshCookies = async () => {
     await page.goto("https://accounts.google.com/signin/v2/identifier?service=youtube", { waitUntil: "networkidle2" });
 
     // Enter email and proceed
-    await page.type('input[type="email"]', process.env.YT_EMAIL);
+    await page.type('input[type="email"]', "pulukurivenkatesh02@gmail.com");
     await page.keyboard.press("Enter");
     await page.waitForTimeout(3000); // Wait for next step
 
     // Enter password and proceed
-    await page.type('input[type="password"]', process.env.YT_PASSWORD);
+    await page.type('input[type="password"]', "venkatesh@20030357");
     await page.keyboard.press("Enter");
     await page.waitForNavigation({ waitUntil: "networkidle2" });
 
