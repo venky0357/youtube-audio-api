@@ -30,7 +30,7 @@ const refreshCookies = async () => {
     console.log("Refreshing cookies...");
 
     const browser = await puppeteer.launch({
-        headless: true, // Ensure headless mode for server environments
+        headless: true,
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -39,7 +39,7 @@ const refreshCookies = async () => {
             "--no-first-run",
             "--no-zygote",
         ],
-        executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome", // Adjust for local use
+        executablePath: "/opt/render/.cache/puppeteer/chrome/linux-133.0.6943.126/chrome-linux64/chrome",
     });
 
     const page = await browser.newPage();
@@ -48,13 +48,13 @@ const refreshCookies = async () => {
     await page.goto("https://accounts.google.com/signin/v2/identifier?service=youtube", { waitUntil: "networkidle2" });
 
     // Enter email
-    await page.type('input[type="email"]', "pulukurivenkatesh02@gmail.com");
+    await page.type('input[type="email"]', process.env.YT_EMAIL);
     await page.keyboard.press("Enter");
     await page.waitForNavigation({ waitUntil: "networkidle2" }); // Ensure next step loads
 
     // Enter password
-    await page.type('input[type="password"]', "Venkatesh@20030357");
-    await page.keyboard.press("Enter");
+    await page.type('input[type="password"]', process.env.YT_PASSWORD);
+await page.keyboard.press("Enter"); 
     await page.waitForNavigation({ waitUntil: "networkidle2" }); // Wait until logged in
 
     console.log("Logged in successfully!");
@@ -100,4 +100,4 @@ app.get("/get-audio", async (req, res) => {
 
 // Start server on Render's assigned port
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
