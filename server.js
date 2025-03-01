@@ -27,7 +27,18 @@ const isCookiesValid = async () => {
 // Function to refresh YouTube cookies using Puppeteer
 const refreshCookies = async () => {
     console.log("Refreshing cookies...");
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({
+        headless: true, // Must be true for server environments
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--no-first-run",
+            "--no-zygote",
+        ],
+        executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome", // Use system Chrome
+    });
     const page = await browser.newPage();
     
     // Navigate to YouTube login page
